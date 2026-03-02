@@ -1,5 +1,5 @@
 class UpdateCardsRequest {
-    constructor({ color, action, gameId }) {
+    constructor({ color, action, gameId } = {}) {
         this.color = color;
         this.action = action;
         this.gameId = gameId;
@@ -14,28 +14,31 @@ class UpdateCardsRequest {
             this.gameId !== undefined;
 
         if (!hasAtLeastOne) {
-            errors.push('At least one field must be provided');
-            return errors;
+            errors.push('at least one field must be provided');
         }
 
         if (this.color !== undefined) {
             if (typeof this.color !== 'string' || this.color.trim() === '') {
-                errors.push('Color must be a non-empty string');
+                errors.push('color must be a non-empty string');
             }
         }
 
         if (this.action !== undefined) {
             if (typeof this.action !== 'string' || this.action.trim() === '') {
-                errors.push('Action must be a non-empty string');
+                errors.push('action must be a non-empty string');
             }
         }
 
         if (this.gameId !== undefined) {
             if (typeof this.gameId !== 'number' || !Number.isInteger(this.gameId)) {
-                errors.push('GameId must be an integer');
+                errors.push('gameId must be an integer');
             }
         }
 
-        return errors;
+        if (errors.length > 0) {
+            throw new Error(errors.join(', '));
+        }
     }
 }
+
+module.exports = UpdateCardsRequest;

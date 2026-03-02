@@ -1,27 +1,29 @@
 class CreateGameRequestDTO {
-    constructor({ color, action, gameId }) {
+    constructor({ color, action, gameId } = {}) {
         this.color = color;
         this.action = action;
         this.gameId = gameId;
     }
+
     validate() {
         const errors = [];
 
-        if (typeof this.color !== 'string' || this.color.trim() === '') {
-            errors.push('Color is required');
+        if (!this.color || typeof this.color !== 'string') {
+            errors.push('color is required');
         }
 
-        if (typeof this.action !== 'string' || this.action.trim() === '') {
-            errors.push('Action is required');
+        if (!this.action || typeof this.action !== 'string') {
+            errors.push('action is required');
         }
 
         if (typeof this.gameId !== 'number' || !Number.isInteger(this.gameId)) {
-            errors.push('GameId is required');
+            errors.push('gameId must be an integer');
         }
 
-
-        return errors;
+        if (errors.length > 0) {
+            throw new Error(errors.join(', '));
+        }
     }
 }
 
-module.exports = CreateGameRequestDTO;p
+module.exports = CreateGameRequestDTO;

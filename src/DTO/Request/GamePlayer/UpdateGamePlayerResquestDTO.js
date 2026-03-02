@@ -1,8 +1,5 @@
-
-
-class UpdateGamePlayerRequestDTO  {
-    constructor({ isReady, isCurrentTurn, score }) {
-
+class UpdateGamePlayerRequestDTO {
+    constructor({ isReady, isCurrentTurn, score } = {}) {
         this.isReady = isReady;
         this.isCurrentTurn = isCurrentTurn;
         this.score = score;
@@ -11,20 +8,36 @@ class UpdateGamePlayerRequestDTO  {
     validate() {
         const errors = [];
 
-        if (this.isReady !== undefined && typeof this.isReady !== 'boolean') {
-            errors.push('isReady must be a boolean');
+        const hasAtLeastOne =
+            this.isReady !== undefined ||
+            this.isCurrentTurn !== undefined ||
+            this.score !== undefined;
+
+        if (!hasAtLeastOne) {
+            errors.push('at least one field must be provided');
         }
 
-        if (this.isCurrentTurn !== undefined && typeof this.isCurrentTurn !== 'boolean') {
-            errors.push('isCurrentTurn must be a boolean');
+        if (this.isReady !== undefined) {
+            if (typeof this.isReady !== 'boolean') {
+                errors.push('isReady must be a boolean');
+            }
         }
 
-        if (this.score !== undefined && !Number.isInteger(this.score)) {
-            errors.push('Score must be an integer');
+        if (this.isCurrentTurn !== undefined) {
+            if (typeof this.isCurrentTurn !== 'boolean') {
+                errors.push('isCurrentTurn must be a boolean');
+            }
         }
 
+        if (this.score !== undefined) {
+            if (typeof this.score !== 'number' || !Number.isInteger(this.score)) {
+                errors.push('score must be an integer');
+            }
+        }
 
-        return errors;
+        if (errors.length > 0) {
+            throw new Error(errors.join(', '));
+        }
     }
 }
 

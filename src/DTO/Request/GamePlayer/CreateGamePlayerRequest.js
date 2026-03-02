@@ -1,5 +1,5 @@
 class CreateGamePlayerRequestDTO {
-    constructor({ gameId, playerId, isReady, isCurrentTurn, score }) {
+    constructor({ gameId, playerId, isReady, isCurrentTurn, score } = {}) {
         this.gameId = gameId;
         this.playerId = playerId;
         this.isReady = isReady;
@@ -10,36 +10,36 @@ class CreateGamePlayerRequestDTO {
     validate() {
         const errors = [];
 
-        if (this.gameId === undefined) {
-            errors.push('Game ID is required');
-        } else if (!Number.isInteger(this.gameId)) {
-            errors.push('Game ID must be an integer');
+        if (typeof this.gameId !== 'number' || !Number.isInteger(this.gameId)) {
+            errors.push('gameId must be an integer');
         }
 
-        if (this.playerId === undefined) {
-            errors.push('Player ID is required');
-        } else if (!Number.isInteger(this.playerId)) {
-            errors.push('Player ID must be an integer');
+        if (typeof this.playerId !== 'number' || !Number.isInteger(this.playerId)) {
+            errors.push('playerId must be an integer');
         }
 
-        if (this.isReady !== undefined && typeof this.isReady !== 'boolean') {
-            errors.push('isReady must be a boolean');
+        if (this.isReady !== undefined) {
+            if (typeof this.isReady !== 'boolean') {
+                errors.push('isReady must be a boolean');
+            }
         }
 
-        if (this.isCurrentTurn !== undefined && typeof this.isCurrentTurn !== 'boolean') {
-            errors.push('isCurrentTurn must be a boolean');
+        if (this.isCurrentTurn !== undefined) {
+            if (typeof this.isCurrentTurn !== 'boolean') {
+                errors.push('isCurrentTurn must be a boolean');
+            }
         }
 
-        if (this.score !== undefined && !Number.isInteger(this.score)) {
-            errors.push('Score must be an integer');
+        if (this.score !== undefined) {
+            if (typeof this.score !== 'number' || !Number.isInteger(this.score)) {
+                errors.push('score must be an integer');
+            }
         }
-        return errors;
 
-
+        if (errors.length > 0) {
+            throw new Error(errors.join(', '));
+        }
     }
-
-
-
 }
 
 module.exports = CreateGamePlayerRequestDTO;
