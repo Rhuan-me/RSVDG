@@ -2,7 +2,7 @@ const Player = require('../models/player');
 const bcrypt = require('bcrypt');
 const jwt = require('jsonwebtoken');
 const playerRepository = require('../repository/PlayerRepository');
-const PlayerResponseDTO = require('../DTO/Response/PlayerResponseDTO');
+const PlayerResponseDTO = require('../DTO/Response/playerResponseDTO');
 const Result = require('../utils/Result');
 
 /**

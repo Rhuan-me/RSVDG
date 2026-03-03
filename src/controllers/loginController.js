@@ -4,7 +4,7 @@
  */
 
 const loginService = require('../services/loginService'); 
-const PlayerDTO = require('../DTO/Response/PlayerResponseDTO');
+const PlayerDTO = require('../DTO/Response/playerResponseDTO');
 
 /**
  * Realiza a autenticação do usuário.

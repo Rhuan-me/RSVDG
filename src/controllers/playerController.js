@@ -1,7 +1,7 @@
 const playerService = require('../services/playerService');
-const PlayerResponseDTO = require('../DTO/Response/PlayerResponseDTO');
-const CreatePlayerRequestDTO = require('../DTO/Request/Player/CreatePlayerRequestDTO');
-const UpdatePlayerRequestDTO = require('../DTO/Request/Player/UpdatePlayerResquestDTO');
+const PlayerResponseDTO = require('../DTO/Response/playerResponseDTO');
+const CreatePlayerRequestDTO = require('../DTO/Request/Player/createPlayerRequestDTO');
+const UpdatePlayerRequestDTO = require('../DTO/Request/Player/updatePlayerResquestDTO');
 
 const sendErrorResponse = (res, error) => {
   const statusMap = {

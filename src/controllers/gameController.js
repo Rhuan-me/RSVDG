@@ -6,7 +6,7 @@ const Game = require('../models/game'); // check if thats the correct path
 const GamePlayer = require('../models/gamePlayer');
 const Player = require('../models/player');
 const gameService = require('../services/gameService');
-const GameResponseDTO = require('../DTO/Response/GameRespondeDTO');
+const GameResponseDTO = require('../DTO/Response/gameRespondeDTO');
 
 
 /**
