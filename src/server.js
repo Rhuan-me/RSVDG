@@ -1,6 +1,8 @@
+const { createServer } = require('node:http');
 const app = require('./app'); 
 const dbConfig = require('./config/database'); 
 const cardService = require('./services/cardService');
+const initSocket = require('./config/socket');
 
 const sequelize = dbConfig.sequelize || dbConfig; 
 const createDatabaseIfNotExists = dbConfig.createDatabaseIfNotExists;
@@ -19,6 +21,7 @@ Game.belongsTo(Player, { as: 'CurrentPlayer', foreignKey: 'currentTurnId' });
 
 const app_PORT = process.env.APP_PORT || 3000;
 
+<<<<<<< HEAD
 async function start() {
   try {
     // 1. Garante que o banco físico existe no MySQL
@@ -55,3 +58,30 @@ async function start() {
 }
 
 start();
+=======
+// Criar servidor HTTP a partir do Express
+const server = createServer(app);
+
+// Inicializar Socket.IO no servidor HTTP
+const io = initSocket(server);
+
+// Exportar io para uso em outros modulos (controllers, services, etc.)
+app.set('io', io);
+
+// Primeiro cria o banco se não existir, depois sincroniza e inicia o servidor
+createDatabaseIfNotExists()
+  .then(() => sequelize.sync({ alter: true })) // Use { alter: true } apenas se precisar alterar a estrutura
+  .then(async () => {
+    console.log('Banco de dados conectado e sincronizado.');
+    
+    await cardService.initCards();
+
+    server.listen(app_PORT, () => {
+      console.log(`Servidor rodando em http://localhost:${app_PORT}`);
+      console.log(`WebSocket (Socket.IO) ativo na mesma porta ${app_PORT}`);
+    });
+  })
+  .catch((error) => {
+    console.error('Erro ao conectar ao banco de dados:', error);
+  });
+>>>>>>> 4c219041726893b2786909d1ad4814fad16f6f71

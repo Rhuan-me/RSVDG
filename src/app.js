@@ -7,6 +7,9 @@
 const express = require('express');
 const cors = require('cors');
 
+// Importação dos middlewares
+const requestTracking = require('./middlewares/requestTracking');
+
 // Importação das rotas da aplicação
 const signUpRoutes = require('./routes/signUpRoutes');
 const loginRoutes = require('./routes/loginRoutes');
@@ -14,6 +17,7 @@ const playerRoutes = require('./routes/playerRoutes');
 const cardRoutes = require('./routes/cardRoutes');
 const scoringHistoryRoutes = require('./routes/scoringHistoryRoutes');
 const gameRoutes = require('./routes/gameRoutes');
+const requestLogRoutes = require('./routes/requestLogRoutes');
 
 /**
  * Instância da aplicação Express.
@@ -38,6 +42,7 @@ app.use(cors({
 // Permite receber JSON no body
 app.use(express.json());
 
+<<<<<<< HEAD
 /**
  * =========================
  * Rotas da API
@@ -46,6 +51,14 @@ app.use(express.json());
  */
 
 // Registro de usuário
+=======
+// Middleware de rastreamento de requisições
+// Captura métricas de todas as requisições (endpoint, método, status, tempo de resposta)
+app.use(requestTracking);
+
+// Definição de Rotas
+// Rota para registro de novos usuários
+>>>>>>> 4c219041726893b2786909d1ad4814fad16f6f71
 app.use('/api/signup', signUpRoutes);
 
 // Login / autenticação
@@ -62,6 +75,8 @@ app.use('/api/scoring-history', scoringHistoryRoutes);
 
 // Jogos (criar, entrar, iniciar, estado, etc)
 app.use('/api/games', gameRoutes);
+// Rota para estatísticas de requisições
+app.use('/api/stats', requestLogRoutes);
 
 /**
  * =========================

@@ -294,6 +294,33 @@
           "response": []
         },
         {
+          "name": "toggleReady",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"game_id\": 1\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{url}}{{games}}/ready",
+              "host": ["{{url}}{{games}}/ready"]
+            },
+            "description": "Alterna o status de pronto do jogador. Se estava pronto, fica nao pronto e vice-versa."
+          },
+          "response": []
+        },
+        {
           "name": "startGame",
           "request": {
             "method": "POST",
@@ -341,9 +368,7 @@
             },
             "url": {
               "raw": "{{url}}{{games}}/current-player",
-              "host": [
-                "{{url}}{{games}}/current-player"
-              ]
+              "host": ["{{url}}{{games}}/current-player"]
             },
             "description": "Obtém o jogador atual que deve realizar a jogada."
           },
@@ -370,9 +395,7 @@
             },
             "url": {
               "raw": "{{url}}{{games}}/top-card",
-              "host": [
-                "{{url}}{{games}}/top-card"
-              ]
+              "host": ["{{url}}{{games}}/top-card"]
             },
             "description": "Retorna a carta que está no topo da pilha de descarte."
           },
@@ -399,9 +422,7 @@
             },
             "url": {
               "raw": "{{url}}{{games}}/scores",
-              "host": [
-                "{{url}}{{games}}/scores"
-              ]
+              "host": ["{{url}}{{games}}/scores"]
             },
             "description": "Obtém as pontuações atuais de todos os participantes do jogo."
           },
@@ -514,35 +535,277 @@
             "description": "Obtém a lista de jogadores no jogo."
           },
           "response": []
+        },
+        {
+          "name": "dealCards",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"game_id\": 1,\n  \"cardsPerPlayer\": 7\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{url}}{{games}}/deal-cards",
+              "host": ["{{url}}{{games}}/deal-cards"]
+            },
+            "description": "Distribui cartas aos jogadores usando recursão. Cria o baralho UNO completo (108 cartas), embaralha e distribui 7 cartas por jogador. A primeira carta da pilha de descarte é garantidamente numérica."
+          },
+          "response": []
+        },
+        {
+          "name": "playCard",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"game_id\": 1,\n  \"player\": \"safira\",\n  \"cardPlayed\": \"Green 7\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{url}}{{games}}/play-card",
+              "host": ["{{url}}{{games}}/play-card"]
+            },
+            "description": "Jogar uma carta seguindo as regras do UNO. A carta deve corresponder em cor, valor ou ser Wild. Para cartas Wild, inclua chosenColor no body. Efeitos aplicados automaticamente: Skip (pula proximo), Reverse (inverte direcao), Draw Two (+2 e pula), Wild Draw Four (+4 e pula)."
+          },
+          "response": []
+        },
+        {
+          "name": "playCard (Wild)",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"game_id\": 1,\n  \"player\": \"safira\",\n  \"cardPlayed\": \"Wild\",\n  \"chosenColor\": \"Red\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{url}}{{games}}/play-card",
+              "host": ["{{url}}{{games}}/play-card"]
+            },
+            "description": "Jogar uma carta Wild escolhendo a cor. chosenColor obrigatório: Red, Blue, Green ou Yellow."
+          },
+          "response": []
+        },
+        {
+          "name": "playCard (Wild Draw Four)",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"game_id\": 1,\n  \"player\": \"safira\",\n  \"cardPlayed\": \"Wild Draw Four\",\n  \"chosenColor\": \"Blue\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{url}}{{games}}/play-card",
+              "host": ["{{url}}{{games}}/play-card"]
+            },
+            "description": "Jogar Wild Draw Four. O proximo jogador compra 4 cartas e perde o turno. chosenColor obrigatório."
+          },
+          "response": []
+        },
+        {
+          "name": "getValidCards",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"game_id\": 1,\n  \"player\": \"safira\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{url}}{{games}}/valid-cards",
+              "host": ["{{url}}{{games}}/valid-cards"]
+            },
+            "description": "Obter cartas válidas que o jogador pode jogar (usa recursão/generator). Retorna a lista de cartas jogáveis com base na carta do topo e cor atual."
+          },
+          "response": []
+        },
+        {
+          "name": "drawCard",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"game_id\": 1,\n  \"player\": \"safira\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{url}}{{games}}/draw-card",
+              "host": ["{{url}}{{games}}/draw-card"]
+            },
+            "description": "Comprar uma carta do baralho quando não pode jogar. O turno passa automaticamente para o próximo jogador. Se o baralho acabar, a pilha de descarte é reembaralhada."
+          },
+          "response": []
+        },
+        {
+          "name": "sayUno",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"game_id\": 1,\n  \"player\": \"safira\",\n  \"action\": \"Say UNO\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{url}}{{games}}/say-uno",
+              "host": ["{{url}}{{games}}/say-uno"]
+            },
+            "description": "Jogador diz UNO quando tem 1 carta restante. Deve ser chamado antes que outro jogador faça um challenge. O campo action deve ser exatamente 'Say UNO'."
+          },
+          "response": []
+        },
+        {
+          "name": "challengeUno",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"game_id\": 1,\n  \"challenger\": \"safira\",\n  \"challengedPlayer\": \"grazi_player\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{url}}{{games}}/challenge-uno",
+              "host": ["{{url}}{{games}}/challenge-uno"]
+            },
+            "description": "Desafiar um jogador que não disse UNO. Se o jogador desafiado tem 1 carta e não disse UNO, ele compra 2 cartas de penalidade. Se ele já disse UNO, o desafio falha (retorna 400)."
+          },
+          "response": []
+        },
+        {
+          "name": "executeTurn (play-card)",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"game_id\": 1,\n  \"player\": \"safira\",\n  \"action\": \"play-card\",\n  \"card\": \"Blue 5\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{url}}{{games}}/turn",
+              "host": ["{{url}}{{games}}/turn"]
+            },
+            "description": "Ação unificada de turno - jogar carta. Combina validação + jogar + encerrar turno automaticamente. Para Wild, inclua chosenColor."
+          },
+          "response": []
+        },
+        {
+          "name": "executeTurn (draw-card)",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"game_id\": 1,\n  \"player\": \"safira\",\n  \"action\": \"draw-card\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{url}}{{games}}/turn",
+              "host": ["{{url}}{{games}}/turn"]
+            },
+            "description": "Ação unificada de turno - comprar carta. Compra uma carta e encerra o turno automaticamente."
+          },
+          "response": []
         }
-        ,
-{
-  "name": "toggleReady",
-  "request": {
-    "method": "POST",
-    "header": [
-      {
-        "key": "Content-Type",
-        "value": "application/json"
-      }
-    ],
-    "body": {
-      "mode": "raw",
-      "raw": "{\n  \"game_id\": 1\n}",
-      "options": {
-        "raw": {
-          "language": "json"
-        }
-      }
-    },
-    "url": {
-      "raw": "{{url}}{{games}}/ready",
-      "host": ["{{url}}{{games}}/ready"]
-    },
-    "description": "Alterna o status de pronto do jogador. Se estava pronto, fica nao pronto e vice-versa."
-  },
-  "response": []
-}
       ]
     },
     {
@@ -1107,6 +1370,141 @@
               "host": ["{{url}}{{login}}"]
             },
             "description": "Deve retornar erro 401 - credenciais inválidas"
+          },
+          "response": []
+        },
+        {
+          "name": "Game - Jogar carta invalida",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"game_id\": 1,\n  \"player\": \"safira\",\n  \"cardPlayed\": \"Yellow 9\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{url}}{{games}}/play-card",
+              "host": ["{{url}}{{games}}/play-card"]
+            },
+            "description": "Deve retornar erro 400 - carta inválida se não bater com cor/valor do topo"
+          },
+          "response": []
+        },
+        {
+          "name": "Game - Wild sem chosenColor",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"game_id\": 1,\n  \"player\": \"safira\",\n  \"cardPlayed\": \"Wild\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{url}}{{games}}/play-card",
+              "host": ["{{url}}{{games}}/play-card"]
+            },
+            "description": "Deve retornar erro 400 - chosenColor obrigatório para cartas Wild"
+          },
+          "response": []
+        },
+        {
+          "name": "Game - sayUno action errada",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"game_id\": 1,\n  \"player\": \"safira\",\n  \"action\": \"wrong\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{url}}{{games}}/say-uno",
+              "host": ["{{url}}{{games}}/say-uno"]
+            },
+            "description": "Deve retornar erro 400 - action deve ser 'Say UNO'"
+          },
+          "response": []
+        },
+        {
+          "name": "Game - challengeUno sem campos",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"game_id\": 1\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{url}}{{games}}/challenge-uno",
+              "host": ["{{url}}{{games}}/challenge-uno"]
+            },
+            "description": "Deve retornar erro 400 - challenger e challengedPlayer obrigatórios"
+          },
+          "response": []
+        },
+        {
+          "name": "Game - executeTurn action invalida",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"game_id\": 1,\n  \"player\": \"safira\",\n  \"action\": \"invalid-action\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{url}}{{games}}/turn",
+              "host": ["{{url}}{{games}}/turn"]
+            },
+            "description": "Deve retornar erro 400 - action deve ser 'play-card' ou 'draw-card'"
           },
           "response": []
         }
