@@ -1,106 +1,28 @@
-/**
- * @fileoverview Rotas da API para gerenciamento de jogos
- * @module routes/gameRoutes
- */
-
 const express = require('express');
-
-/**
- * Router Express para as rotas de games
- * @type {express.Router}
- */
 const router = express.Router();
-
 const gameController = require('../controllers/gameController');
-const auth = require('../middlewares/auth'); // Middleware necessário para validar o token
+const authMiddleware = require('../middlewares/auth');
 
-/**
- * @route POST /api/games
- * @description 5. Criar um novo jogo
- * @access Private (Requer Token)
- * @body {string} name - Nome do jogo (obrigatório)
- * @body {string} [rules] - Regras do jogo
- * @returns {Object} 201 - Jogo criado com sucesso e game_id
- */
-router.post('/', auth, gameController.create);
+router.use(authMiddleware);
 
-/**
- * @route POST /api/games/join
- * @description 6. Juntar-se a um jogo existente
- * @access Private (Requer Token)
- * @body {number} game_id - ID do jogo para entrar
- * @returns {Object} 200 - Usuário adicionado ao jogo com sucesso
- */
-router.post('/join', auth, gameController.join);
-
-/**
- * @route POST /api/games/ready
- * @description Alterna o status de "pronto" do jogador no jogo
- * @access Private (Requer Token)
- * @body {number} game_id - ID do jogo
- * @returns {Object} 200 - Status de ready atualizado
- */
-router.post('/ready', auth, gameController.toggleReady);
-
-/**
- * @route POST /api/games/start
- * @description 7. Começar o jogo (apenas criador e todos prontos)
- * @access Private (Requer Token)
- * @body {number} game_id - ID do jogo para iniciar
- * @returns {Object} 200 - Jogo iniciado com sucesso
- */
-router.post('/start', auth, gameController.start);
-router.post('/leave', auth, gameController.leave);
-router.post('/end', auth, gameController.end); 
-router.post('/state', auth, gameController.getState);
-router.post('/players', auth, gameController.getPlayers);
-
-/**
- * @route GET /api/games/:id
- * @description Busca um jogo pelo ID
- * @access Public
- */
+// --- ROTAS DO LOBBY (Resolve os erros das imagens 9353f7 e 9285a7) ---
+router.post('/', gameController.create); // Atende POST /api/games
+router.post('/create', gameController.create);
+router.post('/players', gameController.getPlayers); // Atende POST /api/games/players
+router.get('/players/:id', gameController.getPlayers); // Atende GET /api/games/players/:id
 router.get('/:id', gameController.getById);
 
-/**
- * @route PUT /api/games/:id
- * @description Atualiza um jogo existente
- * @access Public
- */
-router.put('/:id', gameController.update);
+// --- ROTAS DE AÇÃO ---
+router.post('/join', gameController.join);
+router.post('/ready', gameController.toggleReady);
+router.post('/start', gameController.start);
 
-/**
- * @route DELETE /api/games/:id
- * @description Remove um jogo do sistema
- * @access Public
- */
-router.delete('/:id', gameController.delete);
-
-/**
- * @route POST /api/games/current-player
- * @description Obter o jogador atual que deve jogar uma carta
- * @access Private (Requer Token)
- * @body {number} game_id - ID do jogo
- * @returns {Object} 200 - Jogador atual
- */
-router.post('/current-player', auth, gameController.getCurrentPlayer);
-
-/**
- * @route POST /api/games/top-card
- * @description Pegar a carta do topo da pilha de descarte
- * @access Private (Requer Token)
- * @body {number} game_id - ID do jogo
- * @returns {Object} 200 - Carta do topo
- */
-router.post('/top-card', auth, gameController.getTopCard);
-
-/**
- * @route POST /api/games/scores
- * @description Obter pontuações atuais de todos os jogadores
- * @access Private (Requer Token)
- * @body {number} game_id - ID do jogo
- * @returns {Object} 200 - Pontuações dos jogadores
- */
-router.post('/scores', auth, gameController.getScores);
+// --- ROTAS DA SALA DE JOGO (Resolve os erros da imagem 93c517) ---
+router.post('/state', gameController.getState);
+router.post('/current-player', gameController.getState);
+router.post('/my-hand', gameController.getMyHand); // Atende POST /api/games/my-hand
+router.post('/top-card', gameController.getTopCard);
+router.post('/play-card', gameController.playCard);
+router.post('/draw-card', gameController.drawCard);
 
 module.exports = router;

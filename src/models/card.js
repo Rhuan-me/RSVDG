@@ -2,18 +2,18 @@ const { DataTypes } = require('sequelize');
 const sequelize = require('../config/database.selector');
 
 const Card = sequelize.define('Card', {
-  color: {
-    type: DataTypes.STRING, // "blue", "red", "green", "yellow"
-    allowNull: false
+  color: { type: DataTypes.STRING, allowNull: false },
+  value: { type: DataTypes.STRING, allowNull: false },
+  cardStatus: { 
+    type: DataTypes.STRING, 
+    allowNull: false, 
+    defaultValue: 'deck' 
   },
-  action: {
-    type: DataTypes.STRING, // "3", "7", "skip", "drawTwo", "buyFour"
-    allowNull: false
+  gameId: { 
+    type: DataTypes.INTEGER, 
+    allowNull: true // MUDANÇA AQUI: Permitir null para o initCards funcionar
   },
-  gameId: {
-    type: DataTypes.INTEGER,
-    allowNull: false
-  }
+  playerId: { type: DataTypes.INTEGER, allowNull: true }
 });
 
 module.exports = Card;

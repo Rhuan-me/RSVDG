@@ -1,394 +1,179 @@
-/**
- * @fileoverview Serviço responsável pela lógica de negócio dos jogos
- * @module services/gameService
- */
-
-const Game = require('../models/game');
-const GamePlayer = require('../models/gamePlayer'); // Importante para gerenciar os participantes
-const Player = require('../models/player');
+const { Card, Game, GamePlayer, Player } = require('../models');
 
 /**
- * Classe de serviço para operações de Game
- * @class GameService
+ * Mapeia o jogo para o formato que o frontend espera.
  */
-class GameService {
-  /**
-   * Cria um novo jogo e adiciona o criador automaticamente como primeiro jogador
-   * @async
-   * @param {Object} data - Dados do jogo (name, rules)
-   * @param {number} creatorId - ID do usuário autenticado que está criando o jogo
-   * @returns {Promise<Game>} O jogo criado
-   */
-  async createGame(data, creatorId) {
+const mapGameForFrontend = (game) => {
+    if (!game) return null;
+    const gameData = game.get ? game.get({ plain: true }) : game;
+
+    // Usa o alias 'GamePlayers' que definimos no include
+    const playersList = (gameData.GamePlayers || []).map(gp => ({
+        id: gp.playerId,
+        username: gp.Player ? gp.Player.username : 'Desconhecido',
+        isReady: gp.isReady
+    }));
+
+    return {
+        ...gameData,
+        status: gameData.gameStatus,
+        gameStatus: gameData.gameStatus,
+        players: playersList,
+        GamePlayers: playersList,
+        // Garante que cards também seja acessível
+        cards: gameData.cards || []
+    };
+};
+
+// --- FUNÇÕES DE CRIAÇÃO E LOBBY ---
+
+exports.createGame = async (data, creatorId) => {
     const game = await Game.create({
-      name: data.name,
-      rules: data.rules,
-      maxPlayers: data.maxPlayers, // Permite definir o limite de jogadores respeitando as validações do Model
-      creatorId: creatorId,
-      status: 'waiting' // Jogo começa aguardando jogadores
+        gameStatus: 'waiting',
+        name: data.name || "Nova Partida",
+        creatorId: creatorId 
     });
+    await GamePlayer.create({ gameId: game.id, playerId: creatorId, isReady: true });
+    return await exports.getGameState(game.id);
+};
 
-    // O criador entra automaticamente no jogo e já fica "pronto"
-    await GamePlayer.create({ 
-      gameId: game.id, 
-      playerId: creatorId, 
-      isReady: true 
+exports.joinGame = async (gameId, playerId) => {
+    return await GamePlayer.findOrCreate({
+        where: { gameId, playerId },
+        defaults: { isReady: false }
     });
+};
 
-    return game;
-  }
-
-  /**
-   * Permite que um usuário entre em um jogo existente
-   * @async
-   * @param {number} gameId - ID do jogo
-   * @param {number} playerId - ID do usuário que deseja entrar
-   * @returns {Promise<boolean>} Sucesso da operação
-   * @throws {Error} Se o jogo não existir, estiver cheio ou o usuário já estiver nele
-   */
-  async joinGame(gameId, playerId) {
-    const game = await this.getGameById(gameId);
-
-    if (game.status !== 'waiting') {
-      throw new Error('Não é possível entrar em um jogo que já iniciou ou finalizou');
-    }
-
-    // Verifica se o jogo já atingiu o número máximo de jogadores
-    const currentPlayers = await GamePlayer.count({ where: { gameId } });
-    if (currentPlayers >= game.maxPlayers) {
-      throw new Error('O jogo está cheio');
-    }
-
-    // Verifica se o usuário já está no jogo
-    const alreadyIn = await GamePlayer.findOne({ 
-      where: { gameId, playerId } 
-    });
+exports.toggleReady = async (gameId, playerId) => {
+    const gp = await GamePlayer.findOne({ where: { gameId, playerId } });
+    if (!gp) throw new Error("Jogador não encontrado");
     
-    if (alreadyIn) {
-      throw new Error('Usuário já está neste jogo');
-    }
-
-    // Adiciona o jogador ao jogo
-    await GamePlayer.create({ 
-      gameId, 
-      playerId, 
-      isReady: false // Entra mas ainda não confirmou que está pronto
-    });
-
-    return true;
-  }
-
-  /**
-   * Alterna o status de "pronto" de um jogador no jogo
-   * @async
-   * @param {number} gameId - ID do jogo
-   * @param {number} playerId - ID do jogador
-   * @returns {Promise<Object>} Objeto com o novo status de isReady
-   * @throws {Error} Se o jogador não estiver no jogo ou o jogo não estiver em espera
-   */
-  async toggleReady(gameId, playerId) {
-    const game = await this.getGameById(gameId);
-
-    // Verifica se o jogo está em fase de espera
-    if (game.status !== 'waiting') {
-      throw new Error('Não é possível alterar o status de pronto em um jogo que já iniciou ou finalizou');
-    }
-
-    // Verifica se o usuário está no jogo
-    const gamePlayer = await GamePlayer.findOne({ 
-      where: { gameId, playerId } 
-    });
+    gp.isReady = !gp.isReady;
+    await gp.save();
     
-    if (!gamePlayer) {
-      throw new Error('Usuário não está neste jogo');
+    return { success: true, isReady: gp.isReady, playerId };
+};
+
+exports.getGameState = async (gameId) => {
+    const game = await Game.findByPk(gameId, {
+        include: [
+            { 
+                model: GamePlayer, 
+                as: 'GamePlayers', // USANDO O ALIAS OBRIGATÓRIO
+                include: [{ model: Player, as: 'Player', attributes: ['username'] }] 
+            },
+            { 
+                model: Card, 
+                as: 'cards' // USANDO O ALIAS OBRIGATÓRIO
+            }
+        ]
+    });
+    return mapGameForFrontend(game);
+};
+
+exports.getGamePlayers = async (gameId) => {
+    const gps = await GamePlayer.findAll({
+        where: { gameId },
+        include: [{ model: Player, as: 'Player', attributes: ['username'] }]
+    });
+    return gps.map(gp => ({
+        id: gp.playerId,
+        username: gp.Player ? gp.Player.username : 'Desconhecido',
+        isReady: gp.isReady
+    }));
+};
+
+// --- LÓGICA DE INÍCIO DE JOGO (START) ---
+
+exports.startGame = async (gameId) => {
+    const players = await GamePlayer.findAll({ where: { gameId } });
+    
+    if (players.length < 2) {
+        throw new Error("Mínimo de 2 jogadores para iniciar a partida!");
     }
 
-    // Alterna o status de isReady
-    const newReadyStatus = !gamePlayer.isReady;
-    await gamePlayer.update({ isReady: newReadyStatus });
+    const firstPlayerId = players[0].playerId;
+
+    await Game.update({ 
+        gameStatus: 'active', 
+        currentTurnId: firstPlayerId 
+    }, { where: { id: gameId } });
+
+    const colors = ['red', 'blue', 'green', 'yellow'];
+    const values = ['0', '1', '2', '3', '4', '5', '6', '7', '8', '9'];
+
+    for (const player of players) {
+        for (let i = 0; i < 7; i++) {
+            await Card.create({
+                gameId,
+                playerId: player.playerId,
+                color: colors[Math.floor(Math.random() * colors.length)],
+                value: values[Math.floor(Math.random() * values.length)],
+                cardStatus: 'in_hand'
+            });
+        }
+    }
+
+    await Card.create({
+        gameId,
+        color: colors[Math.floor(Math.random() * colors.length)],
+        value: values[Math.floor(Math.random() * values.length)],
+        cardStatus: 'discarded'
+    });
 
     return { 
-      isReady: newReadyStatus,
-      message: newReadyStatus ? 'Você está pronto!' : 'Você não está mais pronto'
+        success: true, 
+        gameStatus: 'active',
+        status: 'active'
     };
-  }
+};
 
-  /**
-   * Permite que um usuário abandone um jogo em progresso
-   * @async
-   * @param {number} gameId - ID do jogo
-   * @param {number} playerId - ID do usuário que deseja sair
-   * @returns {Promise<boolean>} Sucesso da operação
-   * @throws {Error} Se o jogo não estiver em andamento ou o usuário não estiver nele
-   */
-  async leaveGame(gameId, playerId) {
-    const game = await this.getGameById(gameId);
+// --- RESTANTE DAS FUNÇÕES (PLAY, DRAW, HAND) ---
 
-    // Verifica se o jogo está em andamento
-    if (game.status !== 'in_progress' && game.status !== 'started') {
-      throw new Error('O jogo não está em andamento');
-    }
-
-    // Verifica se o usuário está no jogo
-    const playerInGame = await GamePlayer.findOne({ 
-      where: { gameId, playerId } 
+exports.getPlayerHand = async (gameId, playerId) => {
+    const cards = await Card.findAll({ 
+        where: { gameId, playerId, cardStatus: 'in_hand' } 
     });
-    
-    if (!playerInGame) {
-      throw new Error('Usuário não está neste jogo');
-    }
+    return { hand: cards, cards: cards };
+};
 
-    // Remove o jogador do jogo
-    await playerInGame.destroy();
-
-    // Verifica quantos jogadores restam
-    const remainingPlayers = await GamePlayer.count({ where: { gameId } });
-    
-    // Se restar apenas 1 jogador ou nenhum, finaliza o jogo
-    if (remainingPlayers <= 1) {
-      await game.update({ status: 'finished' });
-    }
-
-    return true;
-  }
-
-  /**
-   * Finaliza um jogo (apenas o criador pode finalizar)
-   * @async
-   * @param {number} gameId - ID do jogo
-   * @param {number} userId - ID do usuário que solicita a finalização
-   * @returns {Promise<boolean>} Sucesso da operação
-   * @throws {Error} Se não for o criador ou se o jogo não estiver em andamento
-   */
-  async endGame(gameId, userId) {
-    const game = await this.getGameById(gameId);
-
-    // Verifica se o usuário é o criador
-    if (game.creatorId !== userId) {
-      throw new Error('Apenas o criador do jogo pode encerrar a partida');
-    }
-
-    // Verifica se o jogo está em andamento
-    if (game.status !== 'in_progress' && game.status !== 'started') {
-      throw new Error('O jogo não está em andamento');
-    }
-
-    // Finaliza o jogo
-    await game.update({ status: 'finished' });
-    
-    return true;
-  }
-
-  /**
-   * Obtém o estado atual do jogo
-   * @async
-   * @param {number} gameId - ID do jogo
-   * @returns {Promise<Object>} Estado do jogo
-   */
-  async getGameState(gameId) {
-    const game = await this.getGameById(gameId);
-    
-    return {
-      game_id: game.id,
-      state: game.status
-    };
-  }
-
-  /**
-   * Obtém a lista de jogadores no jogo
-   * @async
-   * @param {number} gameId - ID do jogo
-   * @returns {Promise<Object>} Lista de jogadores
-   */
-  async getGamePlayers(gameId) {
-    const game = await this.getGameById(gameId);
-    
-    const gamePlayers = await GamePlayer.findAll({ 
-      where: { gameId },
-      include: [{
-        model: Player,
-        attributes: ['id', 'username']
-      }]
+exports.getTopCard = async (gameId) => {
+    return await Card.findOne({ 
+        where: { gameId, cardStatus: 'discarded' }, 
+        order: [['updatedAt', 'DESC']] 
     });
+};
 
-    const players = gamePlayers.map(gp => gp.Player ? gp.Player.username : `Player${gp.playerId}`);
+exports.playCard = async (gameId, playerId, cardId) => {
+    const game = await Game.findByPk(gameId);
+    const card = await Card.findByPk(cardId);
+
+    if (!card || card.playerId !== playerId) throw new Error("Esta carta não é sua.");
+    if (game.currentTurnId !== playerId) throw new Error("Não é seu turno.");
+
+    card.cardStatus = 'discarded';
+    card.playerId = null;
+    await card.save();
+
+    const players = await GamePlayer.findAll({ where: { gameId }, order: [['id', 'ASC']] });
+    const currentIndex = players.findIndex(p => p.playerId === playerId);
+    const nextIndex = (currentIndex + 1) % players.length;
     
-    return {
-      game_id: game.id,
-      players: players
-    };
-  }
+    game.currentTurnId = players[nextIndex].playerId;
+    await game.save();
 
-  /**
-   * Inicia o jogo se o solicitante for o criador e todos estiverem prontos
-   * @async
-   * @param {number} gameId - ID do jogo
-   * @param {number} userId - ID do usuário que solicita o início
-   * @returns {Promise<boolean>} Sucesso da operação
-   * @throws {Error} Se não for o criador ou se houver jogadores não prontos
-   */
-  async startGame(gameId, userId) {
-    const game = await this.getGameById(gameId);
+    return { success: true, nextTurn: game.currentTurnId };
+};
 
-    // 1. Verifica se o usuário é o criador
-    if (game.creatorId !== userId) {
-      throw new Error('Apenas o criador do jogo pode iniciar a partida');
-    }
+exports.drawCard = async (gameId, playerId) => {
+    const colors = ['red', 'blue', 'green', 'yellow'];
+    const values = ['0', '1', '2', '3', '4', '5', '6', '7', '8', '9'];
 
-    // 2. Busca todos os jogadores do jogo
-    const players = await GamePlayer.findAll({ where: { gameId } });
-
-    if (players.length < 2) {
-      throw new Error('É necessário pelo menos 2 jogadores para iniciar');
-    }
-
-    // 3. Verifica se todos estão prontos (isReady === true)
-    const allReady = players.every(p => p.isReady === true);
-    
-    if (!allReady) {
-      throw new Error('Nem todos os jogadores estão prontos');
-    }
-
-    // 4. Define o primeiro jogador como o jogador atual
-    if (players.length > 0) {
-      await players[0].update({ isCurrentTurn: true });
-    }
-
-    // 5. Atualiza o status do jogo para iniciado
-    await game.update({ status: 'started' });
-    
-    return true;
-  }
-
-  /**
-   * Busca um jogo pelo seu ID
-   * @async
-   * @param {number|string} id - ID do jogo
-   * @returns {Promise<Game>} O jogo encontrado
-   */
-  async getGameById(id) {
-    const game = await Game.findByPk(id);
-    if (!game) throw new Error('Jogo não encontrado');
-    return game;
-  }
-
-  /**
-   * Atualiza os dados de um jogo existente
-   */
-  async updateGame(id, data) {
-    const game = await this.getGameById(id);
-
-    // Validação: Não permitir diminuir maxPlayers abaixo da quantidade atual de jogadores
-    if (data.maxPlayers) {
-      const currentPlayersCount = await GamePlayer.count({ where: { gameId: id } });
-      if (data.maxPlayers < currentPlayersCount) {
-        throw new Error(`Não é possível reduzir o limite para ${data.maxPlayers} pois já existem ${currentPlayersCount} jogadores na partida.`);
-      }
-    }
-
-    return await game.update(data);
-  }
-
-  /**
-   * Remove um jogo do banco de dados
-   */
-  async deleteGame(id) {
-    const game = await this.getGameById(id);
-    await game.destroy();
-    return { message: 'Jogo removido com sucesso' };
-  }
-}
-
-/**
- * Obtém o jogador atual que deve jogar uma carta
- * @param {number} gameId - ID do jogo
- * @returns {Promise<string>} - Nome do jogador atual
- */
-async function getCurrentPlayer(gameId) {
-  const game = await Game.findByPk(gameId);
-
-  if (!game) {
-    throw new Error('Jogo não encontrado');
-  }
-
-  const gamePlayer = await GamePlayer.findOne({
-    where: { 
-      gameId,
-      isCurrentTurn: true 
-    },
-    include: [{
-      model: Player,
-      attributes: ['username']
-    }]
-  });
-
-  if (!gamePlayer || !gamePlayer.Player) {
-    throw new Error('Nenhum jogador está definido como o atual');
-  }
-
-  return gamePlayer.Player.username;
-}
-
-/**
- * Obtém a carta do topo da pilha de descarte
- * @param {number} gameId - ID do jogo
- * @returns {Promise<Object>} - Carta do topo
- */
-async function getTopCard(gameId) {
-  const game = await Game.findByPk(gameId);
-
-  if (!game) {
-    throw new Error('Jogo não encontrado');
-  }
-
-  const Card = require('../models/card');
-  const topCard = await Card.findOne({
-    where: { gameId },
-    order: [['createdAt', 'DESC']]
-  });
-
-  if (!topCard) {
-    throw new Error('Nenhuma carta encontrada na pilha de descarte');
-  }
-
-  return {
-    color: topCard.color,
-    action: topCard.action,
-    id: topCard.id
-  };
-}
-
-/**
- * Obtém as pontuações atuais de todos os jogadores
- * @param {number} gameId - ID do jogo
- * @returns {Promise<Object>} - Pontuações dos jogadores
- */
-async function getScores(gameId) {
-  const game = await Game.findByPk(gameId);
-
-  if (!game) {
-    throw new Error('Jogo não encontrado');
-  }
-
-  const gamePlayers = await GamePlayer.findAll({
-    where: { gameId },
-    include: [{
-      model: Player,
-      attributes: ['username']
-    }]
-  });
-
-  const scores = {};
-  gamePlayers.forEach(gp => {
-    if (gp.Player) {
-      scores[gp.Player.username] = gp.score || 0;
-    }
-  });
-
-  return scores;
-}
-
-module.exports =  new GameService(); 
-module.exports.getTopCard = getTopCard;
-module.exports.getScores = getScores;
-module.exports.getCurrentPlayer = getCurrentPlayer;
+    return await Card.create({
+        gameId,
+        playerId,
+        color: colors[Math.floor(Math.random() * colors.length)],
+        value: values[Math.floor(Math.random() * values.length)],
+        cardStatus: 'in_hand'
+    });
+};

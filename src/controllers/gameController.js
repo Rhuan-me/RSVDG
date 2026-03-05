@@ -1,190 +1,122 @@
-/**
- * @fileoverview Controller para gerenciamento de jogos
- * @module controllers/gameController
- */
-
 const gameService = require('../services/gameService');
 
+const getGameId = (req) => {
+    return req.params.id || req.body.game_id || req.body.id || req.query.game_id;
+};
 
 exports.create = async (req, res) => {
-  try {
-    const game = await gameService.createGame(req.body, req.user.id);
-    return res.status(201).json({ 
-      message: "Game created successfully", 
-      game_id: game.id 
-    });
-  } catch (error) {
-    return res.status(400).json({ error: error.message });
-  }
-};
-
-exports.join = async (req, res) => {
-  try {
-    const { game_id } = req.body;
-    await gameService.joinGame(game_id, req.user.id);
-    return res.json({ message: 'User joined the game successfully' });
-  } catch (error) {
-    return res.status(400).json({ error: error.message });
-  }
-};
-
-/**
- * Alterna o status de "pronto" do jogador no jogo
- */
-exports.toggleReady = async (req, res) => {
-  try {
-    const { game_id } = req.body;
-    const result = await gameService.toggleReady(game_id, req.user.id);
-    return res.json({ 
-      message: result.message,
-      isReady: result.isReady 
-    });
-  } catch (error) {
-    return res.status(400).json({ error: error.message });
-  }
-};
-
-
-exports.start = async (req, res) => {
-  try {
-    const { game_id } = req.body;
-    await gameService.startGame(game_id, req.user.id);
-    return res.json({ message: 'Game started successfully' });
-  } catch (error) {
-    return res.status(400).json({ error: error.message });
-  }
-};
-
-/**
- * Abandona um jogo em progresso
- */
-exports.leave = async (req, res) => {
-  try {
-    const { game_id } = req.body;
-    await gameService.leaveGame(game_id, req.user.id);
-    return res.json({ message: 'User left the game successfully' });
-  } catch (error) {
-    return res.status(400).json({ error: error.message });
-  }
-};
-
-/**
- * Finaliza um jogo 
- */
-exports.end = async (req, res) => {
-  try {
-    const { game_id } = req.body;
-    await gameService.endGame(game_id, req.user.id);
-    return res.json({ message: 'Game ended successfully' });
-  } catch (error) {
-    return res.status(400).json({ error: error.message });
-  }
-};
-
-/**
- * Obtém o estado atual do jogo 
- */
-exports.getState = async (req, res) => {
-  try {
-    const { game_id } = req.body;
-    const state = await gameService.getGameState(game_id);
-    return res.json(state);
-  } catch (error) {
-    return res.status(404).json({ error: error.message });
-  }
-};
-
-/**
- * Obtém a lista de jogadores no jogo 
- */
-exports.getPlayers = async (req, res) => {
-  try {
-    const { game_id } = req.body;
-    const players = await gameService.getGamePlayers(game_id);
-    return res.json(players);
-  } catch (error) {
-    return res.status(404).json({ error: error.message });
-  }
-};
-
-/**
- * Obtém o jogador atual que deve jogar uma carta
- */
-exports.getCurrentPlayer = async (req, res) => {
-  try {
-    const { game_id } = req.body;
-    const currentPlayer = await gameService.getCurrentPlayer(game_id);
-    return res.json({
-      game_id,
-      current_player: currentPlayer
-    });
-  } catch (error) {
-    return res.status(400).json({ error: error.message });
-  }
-};
-
-/**
- * Obtém a carta do topo da pilha de descarte
- */
-exports.getTopCard = async (req, res) => {
-  try {
-    const { game_id } = req.body;
-    const topCard = await gameService.getTopCard(game_id);
-    return res.json({
-      game_id,
-      top_card: topCard
-    });
-  } catch (error) {
-    return res.status(400).json({ error: error.message });
-  }
-};
-
-/**
- * Obtém as pontuações atuais de todos os jogadores
- */
-exports.getScores = async (req, res) => {
-  try {
-    const { game_id } = req.body;
-    const scores = await gameService.getScores(game_id);
-    return res.json({
-      game_id,
-      scores
-    });
-  } catch (error) {
-    return res.status(400).json({ error: error.message });
-  }
+    try {
+        const game = await gameService.createGame(req.body, req.user.id);
+        return res.status(201).json({ 
+            ...game, 
+            game_id: game.id, 
+            id: game.id 
+        });
+    } catch (error) { 
+        console.error("Erro no Create:", error);
+        return res.status(400).json({ error: error.message }); 
+    }
 };
 
 exports.getById = async (req, res) => {
-  try {
-    const game = await gameService.getGameById(req.params.id);
-    // Retornando os dados sem a necessidade da classe DTO
-    return res.json({
-      id: game.id,
-      name: game.name,
-      rules: game.rules,
-      status: game.status,
-      maxPlayers: game.maxPlayers
-    });
-  } catch (error) {
-    return res.status(404).json({ error: error.message });
-  }
+    try {
+        const id = getGameId(req);
+        const game = await gameService.getGameState(id);
+        if (!game) return res.status(404).json({ error: "Jogo não encontrado" });
+        return res.json(game);
+    } catch (error) { 
+        return res.status(500).json({ error: error.message }); 
+    }
 };
 
-exports.update = async (req, res) => {
-  try {
-    const game = await gameService.updateGame(req.params.id, req.body);
-    return res.json(new GameDTO(game));
-  } catch (error) {
-    return res.status(400).json({ error: error.message });
-  }
+// VERSÃO ÚNICA E CORRIGIDA DO GETSTATE
+exports.getState = async (req, res) => {
+    try {
+        const id = getGameId(req);
+        const state = await gameService.getGameState(id);
+        
+        if (!state) return res.status(404).json({ error: "Estado não encontrado" });
+
+        // Blindagem: enviamos de todas as formas que o Front pode pedir
+        const playersList = state.GamePlayers || state.players || [];
+
+        return res.json({
+            ...state,
+            players: playersList,
+            GamePlayers: playersList
+        });
+    } catch (error) { 
+        return res.status(400).json({ error: error.message }); 
+    }
 };
 
-exports.delete = async (req, res) => {
-  try {
-    const result = await gameService.deleteGame(req.params.id);
-    return res.json(result);
-  } catch (error) {
-    return res.status(400).json({ error: error.message });
-  }
+exports.getPlayers = async (req, res) => {
+    try {
+        const id = getGameId(req);
+        const players = await gameService.getGamePlayers(id);
+        return res.json(players);
+    } catch (error) { 
+        return res.status(400).json({ error: error.message }); 
+    }
+};
+
+exports.getMyHand = async (req, res) => {
+    try {
+        const id = getGameId(req);
+        const result = await gameService.getPlayerHand(id, req.user.id);
+        return res.json(result);
+    } catch (error) { 
+        return res.status(400).json({ error: error.message }); 
+    }
+};
+
+exports.getTopCard = async (req, res) => {
+    try {
+        const id = getGameId(req);
+        const card = await gameService.getTopCard(id);
+        return res.json(card);
+    } catch (error) { 
+        return res.status(400).json({ error: error.message }); 
+    }
+};
+
+exports.join = async (req, res) => {
+    try { 
+        const id = getGameId(req);
+        await gameService.joinGame(id, req.user.id); 
+        return res.json({ message: 'Joined', game_id: id }); 
+    } catch (e) { return res.status(400).json({ error: e.message }); }
+};
+
+exports.toggleReady = async (req, res) => {
+    try { 
+        const id = getGameId(req);
+        const result = await gameService.toggleReady(id, req.user.id); 
+        return res.json(result); 
+    } catch (e) { return res.status(400).json({ error: e.message }); }
+};
+
+exports.start = async (req, res) => {
+    try { 
+        const id = getGameId(req);
+        await gameService.startGame(id); 
+        return res.json({ message: 'Started' }); 
+    } catch (e) { return res.status(400).json({ error: e.message }); }
+};
+
+exports.playCard = async (req, res) => {
+    try { 
+        const id = getGameId(req);
+        const { card_id } = req.body;
+        const result = await gameService.playCard(id, req.user.id, card_id); 
+        return res.json(result); 
+    } catch (e) { return res.status(400).json({ error: e.message }); }
+};
+
+exports.drawCard = async (req, res) => {
+    try { 
+        const id = getGameId(req);
+        const card = await gameService.drawCard(id, req.user.id); 
+        return res.json(card); 
+    } catch (e) { return res.status(400).json({ error: e.message }); }
 };

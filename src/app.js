@@ -5,6 +5,7 @@
  */
 
 const express = require('express');
+const cors = require('cors');
 
 // Importação das rotas da aplicação
 const signUpRoutes = require('./routes/signUpRoutes');
@@ -20,37 +21,70 @@ const gameRoutes = require('./routes/gameRoutes');
  */
 const app = express();
 
-// Middleware
-// Habilita o parsing de JSON no corpo das requisições para facilitar o tratamento de dados
+/**
+ * =========================
+ * Middlewares Globais
+ * =========================
+ */
+
+// Configuração de CORS aprimorada para evitar bloqueios no navegador
+app.use(cors({
+  origin: '*', // Permite qualquer origem
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'], // OPTIONS é vital para chamadas POST
+  allowedHeaders: ['Content-Type', 'Authorization'],
+  credentials: true
+}));
+
+// Permite receber JSON no body
 app.use(express.json());
 
-// Definição de Rotas
-// Rota para registro de novos usuários
+/**
+ * =========================
+ * Rotas da API
+ * Prefixo padrão: /api
+ * =========================
+ */
+
+// Registro de usuário
 app.use('/api/signup', signUpRoutes);
-// Rota para autenticação (login, logout, perfil)
+
+// Login / autenticação
 app.use('/api/auth', loginRoutes);
-// Rota para gerenciamento de jogadores (CRUD)
+
+// CRUD de jogadores
 app.use('/api/players', playerRoutes);
-// Rota para gerenciamento de cartas do jogo
+
+// Cartas
 app.use('/api/cards', cardRoutes);
-// Rota para histórico de pontuações
+
+// Histórico de pontuação
 app.use('/api/scoring-history', scoringHistoryRoutes);
-// Rota para gerenciamento de partidas/jogos
+
+// Jogos (criar, entrar, iniciar, estado, etc)
 app.use('/api/games', gameRoutes);
 
-// Middleware de tratamento de erros global
+/**
+ * =========================
+ * Middleware de Tratamento de Erros
+ * =========================
+ */
 app.use((err, req, res, next) => {
-  console.error(err.stack); // Loga o erro no console para depuração
+  console.error('❌ Erro capturado no App:', err.message);
 
   if (res.headersSent) {
     return next(err);
   }
 
   const status = err.status || 500;
-  const message = err.message || 'Internal Server Error';
+  const message = err.message || 'Erro interno no servidor';
 
-  res.status(status).json({ error: message });
+  res.status(status).json({ 
+    error: message,
+    details: process.env.NODE_ENV === 'development' ? err.stack : undefined 
+  });
 });
 
-// Exportamos o 'app' para que o server.js ou arquivos de teste possam usá-lo
+/**
+ * Exporta o app
+ */
 module.exports = app;

@@ -1,37 +1,42 @@
 const Card = require('../models/card');
 
-class CardService {
-  async createCard(data) {
-    return await Card.create(data);
-  }
+const CardService = {
+  initCards: async () => {
+    try {
+      const count = await Card.count();
+      if (count > 0) return;
 
-  async getCardById(id) {
-    const card = await Card.findByPk(id);
-    if (!card) throw new Error('Cartão não encontrado');
-    return card;
-  }
+      const colors = ['red', 'blue', 'green', 'yellow'];
+      const values = ['0', '1', '2', '3', '4', '5', '6', '7', '8', '9', 'skip', 'reverse', 'draw2'];
+      const specials = ['wild', 'wild4'];
 
-  async updateCard(id, data) {
-    const card = await this.getCardById(id);
-    return await card.update(data);
-  }
+      const cardsToCreate = [];
 
-  async deleteCard(id) {
-    const card = await this.getCardById(id);
-    await card.destroy();
-    return { message: 'Cartão removido com sucesso' };
-  }
+      // Cartas coloridas
+      for (const color of colors) {
+        for (const value of values) {
+          cardsToCreate.push({ color, value, status: 'deck', gameId: null });
+          if (value !== '0') {
+            cardsToCreate.push({ color, value, status: 'deck', gameId: null });
+          }
+        }
+      }
 
+      // Cartas pretas
+      for (const special of specials) {
+        for (let i = 0; i < 4; i++) {
+          cardsToCreate.push({ color: 'black', value: special, status: 'deck', gameId: null });
+        }
+      }
 
-  async initCards() { // Initialize cards if none exist
-    const count = await Card.count();
-    if (count === 0) {
-      await Card.create({ color: "blue", action: "3", gameId: 1 });
-      await Card.create({ color: "red", action: "Skip", gameId: 1 });
-      await Card.create({ color: "black", action: "buyFour", gameId: 1 });
-      console.log("Baralho de Uno inicializado!");
+      await Card.bulkCreate(cardsToCreate);
+      console.log('✅ Baralho de UNO inicializado com sucesso!');
+      
+    } catch (error) {
+      console.error('Erro ao inicializar cartas:', error.message);
+      throw error;
     }
   }
-}
+};
 
-module.exports = new CardService();
+module.exports = CardService;

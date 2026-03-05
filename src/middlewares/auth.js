@@ -1,31 +1,74 @@
 const jwt = require('jsonwebtoken');
 
-/**
- * Middleware para validar o token de acesso (JWT)
- * Extrai o token do Header Authorization ou do corpo da requisição.
- */
 module.exports = (req, res, next) => {
-  // 1. Tenta obter o token do Header (Bearer TOKEN) ou do campo access_token no corpo
   const authHeader = req.headers['authorization'];
-  const token = (authHeader && authHeader.split(' ')[1]) || req.body.access_token;
+  
+  // Se não houver header, nem tenta processar
+  if (!authHeader) {
+    return res.status(401).json({ error: 'No token provided' });
+  }
 
-  // Se não houver token, retorna erro 401
-  if (!token) {
-    return res.status(401).json({ error: 'Access token is required' });
+  // Divide "Bearer TOKEN" e pega apenas a parte do TOKEN
+  const parts = authHeader.split(' ');
+  
+  if (parts.length !== 2) {
+    return res.status(401).json({ error: 'Token error (Bearer missing)' });
+  }
+
+  const [scheme, token] = parts;
+
+  // Verifica se a palavra Bearer está lá
+  if (!/^Bearer$/i.test(scheme)) {
+    return res.status(401).json({ error: 'Token malformatted' });
   }
 
   try {
-    // 2. IMPORTANTE: A chave secreta deve ser EXATAMENTE a mesma do loginService/playerService
-    // Mudamos de 'fallback_secret' para 'secret_key' para bater com seus serviços
-    const decoded = jwt.verify(token, process.env.JWT_SECRET || 'secret_key');
+    const secret = process.env.JWT_SECRET || 'secret_key';
+    const decoded = jwt.verify(token, secret);
     
-    // 3. Salva os dados decodificados (id, username, email) no req.user
-    // Isso é o que permite que o gameController saiba quem é o criador do jogo
-    req.user = decoded; 
-    
-    next(); // Autorizado, segue para o controller
-  } catch (error) {
-    // Se o token for inválido ou a chave secreta não bater
+    // DEBUG: Veja exatamente o que tem dentro do token no console do VS Code
+    console.log("CONTEÚDO DO TOKEN DECODIFICADO:", decoded);
+
+    // Garante que o ID exista, não importa se veio como 'id', 'userId' ou dentro de 'user'
+    const userId = decoded.id || (decoded.user && decoded.user.id) || decoded.userId;
+
+    if (!userId) {
+      throw new Error("Token não contém um ID de usuário válido.");
+    }
+
+    req.user = { id: userId }; 
+    return next();
+  } catch (err) {
+    console.error("Erro JWT:", err.message);
     return res.status(401).json({ error: 'Invalid or expired token' });
   }
 };
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
